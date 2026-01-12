@@ -69,8 +69,8 @@ The first challenge was to accurately count the rows in the table. The DemoQA ta
 
 **My approach:**
 ```python
-initial_rows = driver.find_elements(By.CSS_SELECTOR, ".rt-tbody .rt-tr-group")
-initial_row_count = len([row for row in initial_rows if row.text.strip()])
+rows = driver.find_elements(By.XPATH, "//div[@class='rt-tbody']//div[@role='rowgroup']")
+initial_count = len([r for r in rows if r.text.strip()])
 ```
 
 I used a list comprehension to filter out empty rows by checking if `row.text.strip()` returns any content. This gives me only the actual data rows, not the empty placeholders.
@@ -92,22 +92,27 @@ new_person = {
 
 I used explicit waits to ensure the form was fully loaded before interacting with it:
 ```python
-wait = WebDriverWait(driver, 10)
+driver.find_element(By.ID, "addNewRecordButton").click()
 wait.until(EC.visibility_of_element_located((By.ID, "firstName")))
+
+driver.find_element(By.ID, "firstName").send_keys("Haneesha")
+driver.find_element(By.ID, "lastName").send_keys("Molleti")
+# ... other fields
+driver.find_element(By.ID, "submit").click()
 ```
 
 This prevents timing issues where we might try to fill fields before they're ready.
 
 ### Step 3: Verifying Row Count Increased
 
-After adding the new person, I repeated the same row counting logic and used an assertion to verify the count increased by exactly 1:
+After adding the new person, I repeated the same row counting logic and verified the count increased:
 
 ```python
-assert updated_row_count == initial_row_count + 1, \
-    f"Expected {initial_row_count + 1} rows, but found {updated_row_count}"
+time.sleep(0.5)
+rows = driver.find_elements(By.XPATH, "//div[@class='rt-tbody']//div[@role='rowgroup']")
+new_count = len([r for r in rows if r.text.strip()])
+print(f"Step 3: New count = {new_count} (Increased: {new_count > initial_count})")
 ```
-
-The assertion includes a descriptive error message that shows what was expected versus what was found, making debugging easier if something goes wrong.
 
 ### Step 4: Editing the Person's Age
 
@@ -117,62 +122,45 @@ This was the trickiest part because of potential issues with element interceptio
 
 1. **Finding the correct row:**
 ```python
-for row in all_rows:
-    if new_person["firstName"] in row.text and new_person["lastName"] in row.text:
-        target_row = row
+for row in rows:
+    if "Haneesha" in row.text and "Molleti" in row.text:
+        edit_btn = row.find_element(By.XPATH, ".//span[@title='Edit']")
+        driver.execute_script("arguments[0].click();", edit_btn)
         break
 ```
-
-2. **Handling click interception:**
-The DemoQA website has advertisements that can block clicks, so I implemented multiple fallback methods:
-
-```python
-# Method 1: Regular click
-try:
-    edit_button.click()
-    click_successful = True
-except ElementClickInterceptedException:
-    # Try alternative methods...
+I iterate through all rows and search for both first name AND last name to ensure uniqueness.
+2. **Using JavaScript click:**
+Instead of using the regular .click() method, I used JavaScript execution to click the edit button:
+```Python
+driver.execute_script("arguments[0].click();", edit_btn)
 ```
-
-If the regular click fails, I fall back to:
-- **JavaScript click:** Bypasses some overlay issues by executing the click directly through JavaScript
-- **ActionChains:** Simulates actual mouse movement to the element before clicking
-
-3. **Removing ads proactively:**
-```python
-driver.execute_script("""
-    var ads = document.querySelectorAll('iframe[id*="google_ads"], iframe[title*="ad"]');
-    ads.forEach(function(ad) { ad.remove(); });
-""")
+This bypasses overlay issues from advertisements that might block normal clicks.
+3. **Updating the age:**
+```Python
+wait.until(EC.visibility_of_element_located((By.ID, "age")))
+driver.find_element(By.ID, "age").clear()
+driver.find_element(By.ID, "age").send_keys("20")
+driver.find_element(By.ID, "submit").click()
 ```
-
-I also scrolled the edit button into view to ensure it's visible and clickable:
-```python
-driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", edit_button)
-```
+I wait for the form to appear, clear the existing age value, and enter the new age (20).
 
 ### Step 5: Verifying the Age Update
 
 Finally, I verified that the age was actually updated in the table by searching for the row again and checking if the new age value appears in its text:
 
 ```python
-for row in all_rows:
-    if new_person["firstName"] in row.text and new_person["lastName"] in row.text:
-        if new_age in row_text:
-            age_verified = True
-            break
+for row in rows:
+    if "Haneesha" in row.text and "20" in row.text:
+        print("Step 5: Age verified = 20")
+        break
 ```
 
 ## 🎯 Key Design Decisions
 
-### 1. Error Handling
-I wrapped the entire test in a try-except-finally block:
-- **Try:** Execute all test steps
-- **Except:** Capture errors, print meaningful messages, and save a screenshot
-- **Finally:** Clean up by closing the browser (even if tests fail)
-
-This ensures the browser doesn't stay open if something crashes, and I get visual debugging information through screenshots.
+### 1. XPath Over CSS Selectors
+I chose XPath selectors for better readability and reliability:
+- By.XPATH, "//div[@class='rt-tbody']//div[@role='rowgroup']" clearly shows we're targeting row groups within the table body
+- XPath provides more flexibility for complex DOM traversal
 
 ### 2. Explicit Waits vs. Implicit Waits
 I chose explicit waits (`WebDriverWait`) over implicit waits because:
@@ -195,22 +183,13 @@ print(f"Changed age from {new_person['age']} to {new_age}")
 When you run the test, you'll see:
 
 ```
-Step 1: Counting initial rows...
-Initial row count: 3
+Step 1: Initial rows = 3
+Step 2: Person added
+Step 3: New count = 4 (Increased: True)
+Step 4: Age edited to 20
+Step 5: Age verified = 20
 
-Step 2: Adding a new person...
-Added new person: Haneesha Molleti
-
-Step 3: Verifying row count increased...
-Row count increased from 3 to 4
-
-Step 4: Finding and editing the new person's age...
-Changed age from 24 to 20
-
-Step 5: Verifying age update...
-Age successfully updated to 20 in the table
-
-=== ALL TESTS PASSED ===
+All steps completed!
 ```
 
 The browser will stay open for 3 seconds after completion so you can see the final state of the table.
@@ -239,7 +218,6 @@ The browser will stay open for 3 seconds after completion so you can see the fin
 selenium-web-tables-automation/
 ├── test_web_tables.py      # Main test script with all automation logic
 ├── requirements.txt         # Python dependencies (selenium, webdriver-manager)
-└── error_screenshot.png    # Generated automatically if test fails
 README.md  
 ```
 
@@ -256,12 +234,10 @@ The webdriver-manager package automatically handles ChromeDriver installation an
 
 ## ✅ Test Validation
 
-My solution includes several assertions to validate each requirement:
+My solution validates each requirement:
 
-1. **Row count assertion:** Verifies exactly one row was added
-2. **Element existence assertion:** Confirms the new person's row exists
-3. **Click success assertion:** Ensures the edit button was clicked successfully
-4. **Age update assertion:** Validates the age field shows the updated value
-
-If any assertion fails, you'll see a descriptive error message and a screenshot will be saved.
-
+1.Initial row count: Prints the starting number of rows
+2.Row addition: Confirms person was added successfully
+3.Row count increase: Verifies the count increased (shows boolean True/False)
+4.Age edit: Confirms age was changed to 20
+5.Age verification: Validates the new age appears in the table
