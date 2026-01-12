@@ -239,9 +239,8 @@ The browser will stay open for 3 seconds after completion so you can see the fin
 selenium-web-tables-automation/
 ├── test_web_tables.py      # Main test script with all automation logic
 ├── requirements.txt         # Python dependencies (selenium, webdriver-manager)
-├── README.md               # This file - explains my solution
-├── .gitignore              # Excludes unnecessary files from git
 └── error_screenshot.png    # Generated automatically if test fails
+README.md  
 ```
 
 ## 🔧 Dependencies
@@ -266,27 +265,6 @@ My solution includes several assertions to validate each requirement:
 
 If any assertion fails, you'll see a descriptive error message and a screenshot will be saved.
 
-## 🎓 What I Learned
-
-Through this exercise, I learned:
-- How to handle dynamic web tables with Selenium
-- Strategies for dealing with unpredictable web elements (ads, overlays)
-- The importance of explicit waits for reliable automation
-- How to implement robust error handling in test automation
-- Best practices for organizing test data and making code maintainable
-
-## 📝 Future Improvements
-
-If I were to extend this solution, I would:
-- Use a testing framework like pytest for better test organization
-- Add parameterized tests to test with multiple different users
-- Implement Page Object Model (POM) for better code structure
-- Add more detailed logging instead of print statements
-- Create a test report with pass/fail statistics
-
-## 👤 Author
-
-Created by Haneesha Molleti as part of a QA automation assessment.
 
 ---
 
