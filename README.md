@@ -265,7 +265,3 @@ My solution includes several assertions to validate each requirement:
 
 If any assertion fails, you'll see a descriptive error message and a screenshot will be saved.
 
-
----
-
-**Note:** This is a demonstration project showing practical Selenium automation skills with Python. The test interacts with a live demo website, so occasional changes to the site structure might require updates to the selectors.
