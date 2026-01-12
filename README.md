@@ -83,7 +83,7 @@ For this step, I needed to click the "Add" button and fill out the registration 
 new_person = {
     "firstName": "Haneesha",
     "lastName": "Molleti",
-    "email": "haneesha.molleti@example.com",
+    "email": "haneeshamolleti04@gmail.com",
     "age": "24",
     "salary": "50000",
     "department": "Engineering"
